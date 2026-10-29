@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {inventory,collect,verifyAccount} from '../server-collector/browser-reader.mjs';
+const id='7699109912265166094',other='7698803207497190670';
+const viewers='Age\n18-24\n5%\n25-34\n10%\n35-44\n23%\n45-54\n29%\n55+\n33%\nGender\nMale\n79%\nFemale\n18%\nOther\n3%\nLocations\nUnited States\n85.2%\nCanada\n2.8%\nPakistan\n<1%';
+const overview='An observed title\nPosted on October 29, 2026\nVideo views\n310\nTotal play time\n0h:27m:39s\nAverage watch time\n5.55s\nWatched full video\n21.7%\nNew followers\n2';
+let current='https://www.tiktok.com/tiktokstudio',own='microflix',mode='normal';
+const page={async goto(url){current=url;},url(){return current;},async evaluate(){},locator(selector){return {async innerText(){if(mode==='captcha')return 'Verify you are human';if(current.endsWith('/viewers'))return mode==='processing'?'Data is being processed. Check back later.':viewers;if(current.includes('/analytics/'))return mode==='unknown'?'Unrecognized new layout':overview;return 'Studio';},async evaluateAll(){if(selector.includes('header'))return ['https://www.tiktok.com/@'+own];return ['https://www.tiktok.com/@microflix/video/'+id,'https://www.tiktok.com/@someoneelse/video/'+other,'https://evil.test/@microflix/video/'+other];}};}};
+const pause=async()=>{};
+await verifyAccount(page,'microflix',pause);
+assert.deepEqual(await inventory(page,'microflix',pause),[id]);
+const capture=await collect(page,id,'microflix',pause);assert.equal(capture.title,'An observed title');assert.equal(capture.overview.averageWatchTime,'5.55s');assert.equal(capture.countries.Pakistan,'<1%');
+mode='processing';const partial=await collect(page,id,'microflix',pause);assert.deepEqual(partial.age,{});assert.deepEqual(partial.gender,{});assert.deepEqual(partial.countries,{});
+mode='normal';own='another';await assert.rejects(()=>collect(page,id,'microflix',pause),e=>e.reason==='account_mismatch');
+own='microflix';mode='captcha';await assert.rejects(()=>inventory(page,'microflix',pause),e=>e.reason==='verification');
+mode='unknown';await assert.rejects(()=>collect(page,id,'microflix',pause),e=>e.reason==='layout_changed');
+console.log('Passed: browser discovery filters owner and host, matching Studio account required, observed Overview/Viewers parsing, unavailable data retained, verification/layout changes pause. Synthetic browser fixture; live TikTok not tested.');
