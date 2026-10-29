@@ -2,6 +2,7 @@ import {spawn} from 'node:child_process';
 import {mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright-core';
 import {createViewer} from './viewer.mjs';
+import {recoverProfileLock} from './profile-lock.mjs';
 const password=process.env.VIEWER_PASSWORD,token=process.env.MICROFLIX_WORKER_TOKEN,origin=process.env.RENDER_EXTERNAL_URL;
 if(!origin?.startsWith('https://')||!password||password.length<20||!/^mfs_[a-f0-9]{64}$/.test(token??''))throw Error('Set VIEWER_PASSWORD (20+ characters), MICROFLIX_WORKER_TOKEN and deploy as a Render web service.');
 process.env.BROWSER_CDP_URL='http://127.0.0.1:9222';
@@ -25,6 +26,8 @@ server.listen(Number(process.env.PORT??10000),'0.0.0.0');
 for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>void shutdown());
 try{
  await mkdir('/var/data/tiktok-profile',{recursive:true,mode:0o700});
+ // Render mounts this single-instance service's disk exclusively after stopping the old instance.
+ if(await recoverProfileLock('/var/data/tiktok-profile',{exclusiveDisk:true}))console.log('Recovered stale Chromium coordination lock; saved browser profile preserved.');
  const xvfb=child('Xvfb',[':99','-screen','0','1280x800x24','-nolisten','tcp']);xvfb.on('exit',()=>{if(!quitting)void shutdown(1);});
  await new Promise(resolve=>setTimeout(resolve,1500));
  child('openbox',[]);

@@ -8,5 +8,4 @@ COPY server-collector ./server-collector
 COPY collector-extension ./collector-extension
 RUN mkdir -p /var/data && chown -R node:node /var/data /opt/microflix
 EXPOSE 10000
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "server-collector/start.sh"]
+ENTRYPOINT ["sh", "server-collector/start.sh"]
