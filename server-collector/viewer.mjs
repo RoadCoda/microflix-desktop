@@ -21,7 +21,7 @@ export function createViewer({password,origin,ready=()=>true,collecting=()=>fals
  const cookieName=secure?'__Host-microflix_viewer':'microflix_viewer';
  const session=req=>{const raw=req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith(cookieName+'='))?.slice(cookieName.length+1);const s=raw&&sessions.get(raw);if(!s||s.expires<Date.now())return null;return {raw,...s};};
  const same=req=>req.headers.origin===allowed;
- const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY','Content-Security-Policy':`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ${allowed.replace(/^http/,'ws')}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`};
+ const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY','Content-Security-Policy':`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ${allowed.replace(/^http/,'ws')}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`};
  const server=http.createServer(async(req,res)=>{try{
   Object.entries(headers).forEach(([k,v])=>res.setHeader(k,v));
   const url=new URL(req.url,'http://localhost');
