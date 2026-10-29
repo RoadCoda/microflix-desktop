@@ -6,7 +6,7 @@ const password=process.env.VIEWER_PASSWORD,token=process.env.MICROFLIX_WORKER_TO
 if(!origin?.startsWith('https://')||!password||password.length<20||!/^mfs_[a-f0-9]{64}$/.test(token??''))throw Error('Set VIEWER_PASSWORD (20+ characters), MICROFLIX_WORKER_TOKEN and deploy as a Render web service.');
 process.env.BROWSER_CDP_URL='http://127.0.0.1:9222';
 const children=[];let context,worker,ready=false,quitting=false;
-function child(command,args,options={}){const p=spawn(command,args,{stdio:'ignore',...options});children.push(p);p.on('error',()=>shutdown(1));return p;}
+function child(command,args,options={}){const p=spawn(command,args,{stdio:['ignore','ignore','inherit'],...options});children.push(p);p.on('error',()=>shutdown(1));return p;}
 async function shutdown(code=0){if(quitting)return;quitting=true;ready=false;for(const p of children)p.kill('SIGTERM');await context?.close().catch(()=>{});server.close();setTimeout(()=>process.exit(code),1000).unref();}
 let controls=Promise.resolve();
 const serial=fn=>{const result=controls.then(fn);controls=result.catch(()=>{});return result;};
@@ -34,4 +34,8 @@ try{
  context.on('close',()=>{if(!quitting)void shutdown(1);});
  const page=context.pages()[0]??await context.newPage();await page.goto('https://www.tiktok.com/tiktokstudio',{waitUntil:'domcontentloaded',timeout:45_000}).catch(()=>{});
  ready=true;console.log('MicroFlix browser ready. Open the authenticated viewer to sign in, then start the collector.');
-}catch{console.error('Browser startup failed. Inspect Render resource limits and disk permissions.');await shutdown(1);}
+}catch(error){
+ let detail=String(error?.message??error);
+ for(const secret of [password,token])if(secret)detail=detail.split(secret).join('[redacted]');
+ console.error('Browser startup failed:',detail.slice(0,12000));await shutdown(1);
+}
